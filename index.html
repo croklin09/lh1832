@@ -92,7 +92,11 @@
     }
     #legend.hidden { display: none; }
     #legend .swatch { width: 12px; height: 12px; border-radius: 50%; background: var(--state-certified); }
-    #legend strong { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+    #legend strong { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right; }
+    .legend-label { display: inline-flex; align-items: center; gap: 8px; }
+    .legend-track { width: 120px; height: 8px; border-radius: var(--radius-pill); background: var(--hairline); overflow: hidden; }
+    .legend-fill { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--state-certified); }
+    .legend-count { color: var(--mute); font-size: 12px; font-variant-numeric: tabular-nums; }
 
     /* Capas: un IFC por capa, cada una con su opacidad. En celular se pliega tras un ícono. */
     .layers {
@@ -304,7 +308,8 @@
     @media (max-width: 640px) {
       .brand-bar { left: 16px; top: calc(16px + env(safe-area-inset-top, 0px)); }
       .brand-logo { height: 36px; }
-      #legend { right: auto; left: 16px; top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); font-size: 13px; padding: 8px 14px; }
+      #legend { right: auto; left: 16px; top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); font-size: 13px; padding: 8px 14px; gap: 8px; }
+      .legend-track { width: 80px; }
       /* Pestañas solo con ícono; la pestaña actual se oculta para ganar espacio */
       .site-nav { right: 16px; top: calc(14px + env(safe-area-inset-top, 0px)); gap: 2px; padding: 2px; }
       .nav-tab { padding: 0; width: 40px; }
@@ -461,7 +466,12 @@
     <p class="doc-status" id="doc-status" role="status" aria-live="polite"></p>
   </section>
   <div id="status" class="overline" role="status" aria-live="polite">Cargando visor…</div>
-  <div id="legend" class="card hidden"><span class="swatch" aria-hidden="true"></span><span id="legend-text"></span></div>
+  <div id="legend" class="card hidden">
+    <span class="legend-label"><span class="swatch" aria-hidden="true"></span>Certificado</span>
+    <div class="legend-track" id="legend-bar" role="progressbar" aria-label="Avance certificado" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="legend-fill" id="legend-fill"></span></div>
+    <strong id="legend-pct"></strong>
+    <span class="legend-count" id="legend-count" title="Elementos certificados / elementos del modelo"></span>
+  </div>
   <div id="section-tools" class="hidden">
     <div class="section-group card" role="group" aria-label="Cortes">
       <button type="button" class="section-btn" id="section-x-btn" data-axis="x" aria-pressed="false" aria-controls="section-x-panel" title="Corte en X" aria-label="Corte en X">
@@ -798,6 +808,7 @@
       const modelID = ifcApi.OpenModel(data, { COORDINATE_TO_ORIGIN: false });
       const certified = findCertifiedElements(ifcApi, modelID);
       const byColor = new Map();
+      const elements = new Set(); // elements that produce visible geometry
 
       ifcApi.StreamAllMeshes(modelID, (mesh) => {
         const placedGeometries = mesh.geometries;
@@ -808,6 +819,7 @@
           const indices = ifcApi.GetIndexArray(ifcGeometry.GetIndexData(), ifcGeometry.GetIndexDataSize());
           ifcGeometry.delete();
           if (!indices.length) continue;
+          elements.add(mesh.expressID);
 
           // Interleaved [x, y, z, nx, ny, nz]
           const count = verts.length / 6;
@@ -850,7 +862,8 @@
         geometries.forEach((g) => g.dispose());
         model.add(new THREE.Mesh(merged, material));
       }
-      model.userData.certifiedCount = certified.size;
+      model.userData.elementCount = elements.size;
+      model.userData.certifiedCount = [...elements].filter((id) => certified.has(id)).length;
       return model;
     }
 
@@ -1020,6 +1033,7 @@
       const root = new THREE.Group();
       const shared = { origin: null };
       let certifiedCount = 0;
+      let elementCount = 0;
       for (const [i, def] of MODELS.entries()) {
         setStatus(MODELS.length > 1 ? `Cargando ${def.name.toLowerCase()} (${i + 1} de ${MODELS.length})…` : 'Descargando modelo…');
         try {
@@ -1027,6 +1041,7 @@
           group.name = def.id;
           root.add(group);
           certifiedCount += group.userData.certifiedCount;
+          elementCount += group.userData.elementCount;
           addLayer(def, group);
         } catch (err) {
           if (i === 0) throw err;
@@ -1036,6 +1051,7 @@
       }
       if (MODELS.length > 1) document.getElementById('layers').classList.remove('hidden');
       root.userData.certifiedCount = certifiedCount;
+      root.userData.elementCount = elementCount;
       return root;
     }
 
@@ -1075,12 +1091,16 @@
         else if (e.key === '+' || e.key === '=') zoomBy(0.8);
         else if (e.key === '-' || e.key === '_') zoomBy(1.25);
       });
-      const legendEl = document.getElementById('legend');
-      const n = model.userData.certifiedCount;
-      const count = document.createElement('strong');
-      count.textContent = String(n);
-      document.getElementById('legend-text').replaceChildren('Certificado · ', count, ` ${n === 1 ? 'elemento' : 'elementos'}`);
-      legendEl.classList.remove('hidden');
+      // Certified progress: certified elements over all elements with geometry, every layer.
+      const { certifiedCount: done, elementCount: total } = model.userData;
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      const bar = document.getElementById('legend-bar');
+      bar.setAttribute('aria-valuenow', String(pct));
+      bar.setAttribute('aria-valuetext', `${pct} % certificado, ${done} de ${total} elementos`);
+      document.getElementById('legend-fill').style.width = `${total ? (done / total) * 100 : 0}%`;
+      document.getElementById('legend-pct').textContent = `${pct} %`;
+      document.getElementById('legend-count').textContent = `${done} / ${total}`;
+      document.getElementById('legend').classList.remove('hidden');
       setStatus('');
     } catch (err) {
       console.error(err);
