@@ -510,7 +510,7 @@
     <img src="assets/lifestyle-sello.svg" width="156" height="106" alt="Lifestyle" translate="no">
     <span class="rule" aria-hidden="true"></span>
     <p class="name" translate="no">LAS HERAS</p>
-    <p class="meta overline">Estructura · IFC2x3</p>
+    <p class="meta overline" id="model-updated"></p>
   </div>
   <div id="hint">Arrastrá para orbitar · Clic derecho o flechas para desplazar · Rueda o +/− para acercar · F para encuadrar</div>
 
@@ -523,6 +523,8 @@
     // IFC models shown as layers, loaded in this order on page open. The first one
     // is required; the others are optional (a failed layer is shown disabled).
     // All share one origin, so models exported from the same Revit project line up.
+    // Date the IFC models were last updated, shown under the project lockup (AAAA-MM-DD).
+    const MODELS_UPDATED = '2026-10-11';
     const MODELS = [
       { id: 'estructura', name: 'Estructura', url: 'models/model.ifc' },
       { id: 'escaleras', name: 'Escaleras', url: 'models/escaleras.ifc' },
@@ -711,6 +713,12 @@
       }
       if (hash === 'brochure') return showDocument(BROCHURE);
       return showView('intro', hash ? document.getElementById('intro-enter') : null);
+    }
+    {
+      const [y, m, d] = MODELS_UPDATED.split('-').map(Number);
+      const date = new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
+        .format(new Date(Date.UTC(y, m - 1, d)));
+      document.getElementById('model-updated').textContent = `Actualizado · ${date}`;
     }
     window.addEventListener('hashchange', route);
     route();
