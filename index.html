@@ -96,7 +96,7 @@
     .legend-label { display: inline-flex; align-items: center; gap: 8px; }
     .legend-track { width: 120px; height: 8px; border-radius: var(--radius-pill); background: var(--hairline); overflow: hidden; }
     .legend-fill { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--state-certified); }
-    .legend-count { color: var(--mute); font-size: 12px; font-variant-numeric: tabular-nums; }
+
 
     /* Capas: un IFC por capa, cada una con su opacidad. En celular se pliega tras un ícono. */
     .layers {
@@ -467,10 +467,9 @@
   </section>
   <div id="status" class="overline" role="status" aria-live="polite">Cargando visor…</div>
   <div id="legend" class="card hidden">
-    <span class="legend-label"><span class="swatch" aria-hidden="true"></span>Certificado</span>
-    <div class="legend-track" id="legend-bar" role="progressbar" aria-label="Avance certificado" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="legend-fill" id="legend-fill"></span></div>
+    <span class="legend-label"><span class="swatch" aria-hidden="true"></span>Avance</span>
+    <div class="legend-track" id="legend-bar" role="progressbar" aria-label="Avance" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="legend-fill" id="legend-fill"></span></div>
     <strong id="legend-pct"></strong>
-    <span class="legend-count" id="legend-count" title="Elementos certificados / elementos del modelo"></span>
   </div>
   <div id="section-tools" class="hidden">
     <div class="section-group card" role="group" aria-label="Cortes">
@@ -1091,15 +1090,14 @@
         else if (e.key === '+' || e.key === '=') zoomBy(0.8);
         else if (e.key === '-' || e.key === '_') zoomBy(1.25);
       });
-      // Certified progress: certified elements over all elements with geometry, every layer.
+      // Avance: certified elements over all elements with geometry, every layer.
       const { certifiedCount: done, elementCount: total } = model.userData;
       const pct = total ? Math.round((done / total) * 100) : 0;
       const bar = document.getElementById('legend-bar');
       bar.setAttribute('aria-valuenow', String(pct));
-      bar.setAttribute('aria-valuetext', `${pct} % certificado, ${done} de ${total} elementos`);
+      bar.setAttribute('aria-valuetext', `${pct} %`);
       document.getElementById('legend-fill').style.width = `${total ? (done / total) * 100 : 0}%`;
       document.getElementById('legend-pct').textContent = `${pct} %`;
-      document.getElementById('legend-count').textContent = `${done} / ${total}`;
       document.getElementById('legend').classList.remove('hidden');
       setStatus('');
     } catch (err) {

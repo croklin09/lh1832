@@ -15,4 +15,7 @@ La lista está en `index.html`, constante `MODELS` (nombre visible y archivo):
   `MODELS_UPDATED` en `index.html` (fecha AAAA-MM-DD que se muestra bajo el sello).
 - Para sumar una capa, subí el IFC acá y agregá una línea a `MODELS`.
 
-Los elementos con la propiedad `Certificated` = YES/TRUE se pintan en verde.
+Los elementos con la propiedad `Certificated` = YES/TRUE se pintan en verde y suman a la barra
+**Avance** (certificados / total de elementos de todas las capas). Hoy los dos IFC tienen todos
+sus elementos certificados mediante el Pset `KORN_Avance` (`Certificated` = TRUE), agregado al final
+de cada archivo. Si se reexporta desde Revit, hay que cargar la propiedad allá.
