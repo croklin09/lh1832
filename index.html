@@ -51,10 +51,13 @@
     /* Herramientas de corte: ícono de línea blanco en círculo dorado (estilo Amenity) */
     #section-tools {
       position: fixed; left: 32px; top: calc(112px + env(safe-area-inset-top, 0px)); z-index: 2;
-      display: flex; flex-direction: column; gap: 12px;
+      display: flex; align-items: flex-start; gap: 12px;
     }
     #section-tools.hidden { display: none; }
-    .section-tool { display: flex; align-items: center; gap: 12px; }
+    /* Los tres cortes agrupados en una sola píldora; sus paneles se apilan a la derecha */
+    .section-group { display: flex; gap: 4px; padding: 4px; border-radius: var(--radius-pill); }
+    .section-group .section-btn { width: 24px; height: 24px; box-shadow: none; }
+    .section-panels { display: flex; flex-direction: column; gap: 8px; }
     .card { background: var(--paper-soft); border: 1px solid var(--hairline); box-shadow: var(--shadow-warm); }
     .section-btn {
       width: 48px; height: 48px; padding: 0; border-radius: 50%; cursor: pointer;
@@ -91,6 +94,20 @@
     #legend .swatch { width: 12px; height: 12px; border-radius: 50%; background: var(--state-certified); }
     #legend strong { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
 
+    /* Capas: un IFC por capa, se encienden y apagan por separado */
+    .layers {
+      position: fixed; right: 32px; top: calc(144px + env(safe-area-inset-top, 0px)); z-index: 2;
+      margin: 0; padding: 12px 18px 14px; border-radius: 16px; min-width: 0;
+    }
+    .layers.hidden { display: none; }
+    .layers legend { float: left; width: 100%; padding: 0; margin: 0 0 8px; color: var(--mute); font-size: 11px; }
+    #layers-list { clear: both; display: grid; gap: 6px; }
+    .layer { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink); cursor: pointer; }
+    .layer input { width: 16px; height: 16px; margin: 0; accent-color: var(--gold-700); cursor: pointer; }
+    .layer input:focus-visible { outline: 2px solid var(--gold-700); outline-offset: 2px; }
+    .layer input:disabled + span { color: var(--mute); }
+    .layer small { color: var(--mute); font-size: 12px; }
+
     /* Bloqueo de proyecto: sello Lifestyle, filete dorado, nombre corto, rótulo */
     .project-lockup {
       position: fixed; right: 32px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 2; pointer-events: none;
@@ -101,7 +118,7 @@
 
     /* Controles de vista: alternativa con clic/teclado a los gestos */
     .view-tools {
-      position: fixed; left: 32px; top: calc(248px + env(safe-area-inset-top, 0px)); z-index: 2;
+      position: fixed; left: 32px; top: calc(164px + env(safe-area-inset-top, 0px)); z-index: 2;
       display: flex; flex-direction: column; gap: 8px;
     }
     .view-tools.hidden { display: none; }
@@ -332,14 +349,18 @@
       .intro-actions .btn { width: 100%; justify-content: center; min-height: 44px; padding-block: 10px; }
       /* Visor en celular: herramientas a la izquierda, paneles de corte abajo a todo el ancho */
       #section-tools { left: 16px; top: calc(76px + env(safe-area-inset-top, 0px)); }
-      .view-tools { left: 16px; top: calc(196px + env(safe-area-inset-top, 0px)); }
+      .view-tools { left: 16px; top: calc(124px + env(safe-area-inset-top, 0px)); }
       .view-tools .section-btn { margin-left: 2px; }
       .section-btn { width: 44px; height: 44px; }
+      .section-group .section-btn { width: 22px; height: 22px; }
+      .layers { right: 16px; top: calc(72px + env(safe-area-inset-top, 0px)); padding: 8px 12px 10px; }
+      .layer { font-size: 13px; }
       .section-controls {
         position: fixed; left: 16px; right: 16px; z-index: 3; gap: 10px; padding: 6px 6px 6px 16px;
       }
-      .section-tool[data-axis="x"] .section-controls { bottom: calc(124px + env(safe-area-inset-bottom, 0px)); }
-      .section-tool[data-axis="y"] .section-controls { bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+      .section-controls[data-axis="x"] { bottom: calc(180px + env(safe-area-inset-bottom, 0px)); }
+      .section-controls[data-axis="y"] { bottom: calc(124px + env(safe-area-inset-bottom, 0px)); }
+      .section-controls[data-axis="z"] { bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
       .section-controls label { font-size: 11px; letter-spacing: .12em; white-space: nowrap; }
       .section-controls input[type="range"] { flex: 1 1 auto; width: auto; min-width: 0; }
       .section-controls output { min-width: 0; font-size: 14px; white-space: nowrap; }
@@ -432,37 +453,54 @@
   <div id="status" class="overline" role="status" aria-live="polite">Cargando visor…</div>
   <div id="legend" class="card hidden"><span class="swatch" aria-hidden="true"></span><span id="legend-text"></span></div>
   <div id="section-tools" class="hidden">
-    <div class="section-tool" data-axis="x">
-      <button type="button" class="section-btn" id="section-x-btn" aria-pressed="false" aria-controls="section-x-panel" title="Corte en X" aria-label="Corte en X">
-        <svg width="26" height="26" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true">
+    <div class="section-group card" role="group" aria-label="Cortes">
+      <button type="button" class="section-btn" id="section-x-btn" data-axis="x" aria-pressed="false" aria-controls="section-x-panel" title="Corte en X" aria-label="Corte en X">
+        <svg width="13" height="13" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
           <circle cx="5.5" cy="21.5" r="3"/><circle cx="12.5" cy="24" r="3"/>
           <path d="M7.8 19.6 17 3.5M11 21.6 4 5.5"/>
           <text x="21.5" y="25.5" font-size="12" font-family="Montserrat, system-ui, sans-serif" font-weight="600" fill="currentColor" stroke="none" text-anchor="middle">X</text>
         </svg>
       </button>
-      <div class="section-controls card" id="section-x-panel" hidden>
-        <label class="overline" for="section-x-range">Corte X</label>
-        <input type="range" id="section-x-range" min="0" max="1" step="0.001" value="0.5">
-        <output for="section-x-range" title="Distancia desde el borde del modelo"></output>
-        <button type="button" class="section-flip" title="Invertir el lado visible" aria-label="Invertir el lado visible del corte X">Invertir</button>
-      </div>
-    </div>
-    <div class="section-tool" data-axis="y">
-      <button type="button" class="section-btn" id="section-y-btn" aria-pressed="false" aria-controls="section-y-panel" title="Corte en Y" aria-label="Corte en Y">
-        <svg width="26" height="26" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true">
+      <button type="button" class="section-btn" id="section-y-btn" data-axis="y" aria-pressed="false" aria-controls="section-y-panel" title="Corte en Y" aria-label="Corte en Y">
+        <svg width="13" height="13" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
           <circle cx="5.5" cy="21.5" r="3"/><circle cx="12.5" cy="24" r="3"/>
           <path d="M7.8 19.6 17 3.5M11 21.6 4 5.5"/>
           <text x="21.5" y="25.5" font-size="12" font-family="Montserrat, system-ui, sans-serif" font-weight="600" fill="currentColor" stroke="none" text-anchor="middle">Y</text>
         </svg>
       </button>
-      <div class="section-controls card" id="section-y-panel" hidden>
+      <button type="button" class="section-btn" id="section-z-btn" data-axis="z" aria-pressed="false" aria-controls="section-z-panel" title="Corte en Z" aria-label="Corte en Z">
+        <svg width="13" height="13" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <circle cx="5.5" cy="21.5" r="3"/><circle cx="12.5" cy="24" r="3"/>
+          <path d="M7.8 19.6 17 3.5M11 21.6 4 5.5"/>
+          <text x="21.5" y="25.5" font-size="12" font-family="Montserrat, system-ui, sans-serif" font-weight="600" fill="currentColor" stroke="none" text-anchor="middle">Z</text>
+        </svg>
+      </button>
+    </div>
+    <div class="section-panels">
+      <div class="section-controls card" id="section-x-panel" data-axis="x" hidden>
+        <label class="overline" for="section-x-range">Corte X</label>
+        <input type="range" id="section-x-range" min="0" max="1" step="0.001" value="0.5">
+        <output for="section-x-range" title="Distancia desde el borde del modelo"></output>
+        <button type="button" class="section-flip" title="Invertir el lado visible" aria-label="Invertir el lado visible del corte X">Invertir</button>
+      </div>
+      <div class="section-controls card" id="section-y-panel" data-axis="y" hidden>
         <label class="overline" for="section-y-range">Corte Y</label>
         <input type="range" id="section-y-range" min="0" max="1" step="0.001" value="0.5">
         <output for="section-y-range" title="Distancia desde el borde del modelo"></output>
         <button type="button" class="section-flip" title="Invertir el lado visible" aria-label="Invertir el lado visible del corte Y">Invertir</button>
       </div>
+      <div class="section-controls card" id="section-z-panel" data-axis="z" hidden>
+        <label class="overline" for="section-z-range">Corte Z</label>
+        <input type="range" id="section-z-range" min="0" max="1" step="0.001" value="0.5">
+        <output for="section-z-range" title="Altura desde la base del modelo"></output>
+        <button type="button" class="section-flip" title="Invertir el lado visible" aria-label="Invertir el lado visible del corte Z">Invertir</button>
+      </div>
     </div>
   </div>
+  <fieldset id="layers" class="layers card hidden">
+    <legend class="overline">Capas</legend>
+    <div id="layers-list"></div>
+  </fieldset>
   <div id="view-tools" class="view-tools hidden" role="group" aria-label="Vista">
     <button type="button" class="section-btn" id="zoom-in" aria-label="Acercar" title="Acercar (+)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg></button>
     <button type="button" class="section-btn" id="zoom-out" aria-label="Alejar" title="Alejar (−)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 12h12"/></svg></button>
@@ -482,8 +520,13 @@
     import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
     import { IfcAPI, IFCRELDEFINESBYPROPERTIES } from 'web-ifc';
 
-    // Model preloaded on page open. Replace models/model.ifc to show another project.
-    const MODEL_URL = 'models/model.ifc';
+    // IFC models shown as layers, loaded in this order on page open. The first one
+    // is required; the others are optional (a failed layer is shown disabled).
+    // All share one origin, so models exported from the same Revit project line up.
+    const MODELS = [
+      { id: 'estructura', name: 'Estructura', url: 'models/model.ifc' },
+      { id: 'escaleras', name: 'Escaleras', url: 'models/escaleras.ifc' },
+    ];
     const WEB_IFC_WASM_PATH = 'https://cdn.jsdelivr.net/npm/web-ifc@0.0.78/';
 
     // Elements whose "Certificated" property is YES/TRUE are drawn in this color.
@@ -500,7 +543,7 @@
     const newsView = document.getElementById('novedades');
     const docView = document.getElementById('doc');
     const nav = document.getElementById('site-nav');
-    const viewerUi = ['viewer', 'section-tools', 'view-tools', 'legend'].map((id) => document.getElementById(id))
+    const viewerUi = ['viewer', 'section-tools', 'view-tools', 'legend', 'layers'].map((id) => document.getElementById(id))
       .concat([...document.querySelectorAll('.brand-bar, .project-lockup, #hint')]);
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const metres = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -720,20 +763,16 @@
 
     // --- IFC loading ---------------------------------------------------------
     // web-ifc outputs Y-up geometry; meshes are merged per color to keep draw calls low.
-    async function loadIfc(url) {
-      setStatus('Iniciando motor IFC…');
-      const ifcApi = new IfcAPI();
-      ifcApi.SetWasmPath(WEB_IFC_WASM_PATH, true);
-      await ifcApi.Init();
-
-      setStatus('Descargando modelo…');
+    // Models are opened in their own coordinates and shifted by a shared origin (the
+    // first placement of the first model), computed in double precision before the
+    // vertices go to Float32, so every layer lands in the same place.
+    async function loadIfc(ifcApi, url, shared) {
       const response = await fetch(url);
       if (response.status === 404) throw new Error('El modelo 3D de Las Heras 1832 todavía no está publicado.');
       if (!response.ok) throw new Error(`No se pudo descargar el modelo (${url}, HTTP ${response.status}). Recargá la página para reintentar.`);
       const data = new Uint8Array(await response.arrayBuffer());
 
-      setStatus('Procesando geometría…');
-      const modelID = ifcApi.OpenModel(data, { COORDINATE_TO_ORIGIN: true });
+      const modelID = ifcApi.OpenModel(data, { COORDINATE_TO_ORIGIN: false });
       const certified = findCertifiedElements(ifcApi, modelID);
       const byColor = new Map();
 
@@ -759,7 +798,13 @@
           geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
           geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
           geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1));
-          geometry.applyMatrix4(new THREE.Matrix4().fromArray(placed.flatTransformation));
+          const t = placed.flatTransformation;
+          shared.origin ??= [t[12], t[13], t[14]];
+          const matrix = new THREE.Matrix4().fromArray(t);
+          matrix.elements[12] -= shared.origin[0];
+          matrix.elements[13] -= shared.origin[1];
+          matrix.elements[14] -= shared.origin[2];
+          geometry.applyMatrix4(matrix);
 
           const { x: r, y: g, z: b, w: a } = certified.has(mesh.expressID) ? CERTIFIED_COLOR : placed.color;
           const key = `${r.toFixed(3)},${g.toFixed(3)},${b.toFixed(3)},${a.toFixed(3)}`;
@@ -808,15 +853,17 @@
     }
 
     // --- Section cuts ----------------------------------------------------------
-    // Vertical section planes along the project's plan axes. web-ifc converts
-    // IFC (Z-up) to Y-up as (x, y, z) -> (x, z, -y), so IFC X is scene +X and
-    // IFC Y is scene -Z. Each plane keeps the side with the lower coordinate
-    // visible; "Invertir" shows the other side.
+    // Section planes along the project's axes: X and Y are vertical cuts, Z is a
+    // horizontal (plan) cut. web-ifc converts IFC (Z-up) to Y-up as
+    // (x, y, z) -> (x, z, -y), so IFC X is scene +X, IFC Y is scene -Z and IFC Z is
+    // scene +Y. Each plane keeps the side with the lower coordinate visible (for Z,
+    // everything below the cut); "Invertir" shows the other side.
     function setupSectionTools(model) {
       const box = new THREE.Box3().setFromObject(model);
       const sections = {
         x: { normal: new THREE.Vector3(-1, 0, 0), min: box.min.x, max: box.max.x },
         y: { normal: new THREE.Vector3(0, 0, 1), min: -box.max.z, max: -box.min.z },
+        z: { normal: new THREE.Vector3(0, -1, 0), min: box.min.y, max: box.max.y },
       };
       const materials = [];
       model.traverse((o) => { if (o.isMesh) materials.push(o.material); });
@@ -826,11 +873,10 @@
       };
 
       for (const [axis, section] of Object.entries(sections)) {
-        const tool = document.querySelector(`.section-tool[data-axis="${axis}"]`);
-        const button = tool.querySelector('.section-btn');
-        const controls = tool.querySelector('.section-controls');
-        const range = tool.querySelector('input[type="range"]');
-        const output = tool.querySelector('output');
+        const button = document.getElementById(`section-${axis}-btn`);
+        const controls = document.getElementById(`section-${axis}-panel`);
+        const range = controls.querySelector('input[type="range"]');
+        const output = controls.querySelector('output');
         section.plane = new THREE.Plane(section.normal.clone(), 0);
         section.flipped = false;
 
@@ -841,9 +887,10 @@
           const pos = section.min + (section.max - section.min) * t;
           const label = `${metres.format(pos - section.min)} m`;
           output.textContent = label;
-          range.setAttribute('aria-valuetext', `${label} desde el borde del modelo`);
-          // Scene coordinate of the cut: IFC X -> scene x, IFC Y -> scene -z.
-          const point = axis === 'x' ? new THREE.Vector3(pos, 0, 0) : new THREE.Vector3(0, 0, -pos);
+          range.setAttribute('aria-valuetext', axis === 'z' ? `${label} desde la base del modelo` : `${label} desde el borde del modelo`);
+          // Scene coordinate of the cut: IFC X -> scene x, IFC Y -> scene -z, IFC Z -> scene y.
+          const point = axis === 'x' ? new THREE.Vector3(pos, 0, 0)
+            : axis === 'y' ? new THREE.Vector3(0, 0, -pos) : new THREE.Vector3(0, pos, 0);
           const normal = section.normal.clone().multiplyScalar(section.flipped ? -1 : 1);
           section.plane.setFromNormalAndCoplanarPoint(normal, point);
         };
@@ -856,7 +903,7 @@
           applyPlanes();
         });
         range.addEventListener('input', update);
-        tool.querySelector('.section-flip').addEventListener('click', () => {
+        controls.querySelector('.section-flip').addEventListener('click', () => {
           section.flipped = !section.flipped;
           update();
         });
@@ -882,8 +929,56 @@
       controls.update();
     }
 
+    // Layer list: one checkbox per IFC. A layer that fails to load stays listed, disabled.
+    function addLayer(def, group, error) {
+      const label = document.createElement('label');
+      label.className = 'layer';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = !!group;
+      input.disabled = !group;
+      const name = document.createElement('span');
+      name.textContent = def.name;
+      label.append(input, name);
+      if (error) {
+        const note = document.createElement('small');
+        note.textContent = 'no disponible';
+        label.title = error.message;
+        label.append(note);
+      }
+      if (group) input.addEventListener('change', () => { group.visible = input.checked; });
+      document.getElementById('layers-list').append(label);
+    }
+
+    async function loadModels() {
+      setStatus('Iniciando motor IFC…');
+      const ifcApi = new IfcAPI();
+      ifcApi.SetWasmPath(WEB_IFC_WASM_PATH, true);
+      await ifcApi.Init();
+      const root = new THREE.Group();
+      const shared = { origin: null };
+      let certifiedCount = 0;
+      for (const [i, def] of MODELS.entries()) {
+        setStatus(MODELS.length > 1 ? `Cargando ${def.name.toLowerCase()} (${i + 1} de ${MODELS.length})…` : 'Descargando modelo…');
+        try {
+          const group = await loadIfc(ifcApi, def.url, shared);
+          group.name = def.id;
+          root.add(group);
+          certifiedCount += group.userData.certifiedCount;
+          addLayer(def, group);
+        } catch (err) {
+          if (i === 0) throw err;
+          console.error(err);
+          addLayer(def, null, err);
+        }
+      }
+      if (MODELS.length > 1) document.getElementById('layers').classList.remove('hidden');
+      root.userData.certifiedCount = certifiedCount;
+      return root;
+    }
+
     try {
-      const model = await loadIfc(MODEL_URL);
+      const model = await loadModels();
       scene.add(model);
       fitToModel(model);
       setupSectionTools(model);

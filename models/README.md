@@ -1,7 +1,17 @@
-# Modelo 3D
+# Modelos 3D (capas)
 
-`model.ifc` es el modelo estructural de Las Heras 1832 (Revit 2026, IFC2X3:
-208 columnas, 124 vigas, 67 losas). El visor lo carga al abrir la pestaña **Visor 3D**.
-Para actualizarlo, reemplazá este archivo manteniendo el nombre `model.ifc`.
+El visor carga cada IFC como una capa que se enciende y apaga desde el panel **Capas**.
+La lista está en `index.html`, constante `MODELS` (nombre visible y archivo):
+
+| Capa       | Archivo          | Contenido                                                |
+|------------|------------------|----------------------------------------------------------|
+| Estructura | `model.ifc`      | Revit 2026, IFC2X3: 208 columnas, 124 vigas, 67 losas    |
+| Escaleras  | `escaleras.ifc`  | Revit 2026, IFC2X3: 23 escaleras, 71 tramos, 69 losas    |
+
+- La primera capa es obligatoria; si otra falla, aparece deshabilitada como "no disponible".
+- Todas comparten el mismo origen, así que los IFC exportados del mismo proyecto Revit
+  (coordenadas compartidas) quedan alineados.
+- Para actualizar un modelo, reemplazá su archivo manteniendo el nombre.
+- Para sumar una capa, subí el IFC acá y agregá una línea a `MODELS`.
 
 Los elementos con la propiedad `Certificated` = YES/TRUE se pintan en verde.
