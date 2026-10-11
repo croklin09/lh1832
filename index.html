@@ -88,12 +88,17 @@
     /* Leyenda de certificados */
     #legend {
       position: fixed; right: 32px; top: calc(92px + env(safe-area-inset-top, 0px)); z-index: 2;
-      display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: var(--radius-pill); font-size: 14px;
+      display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: var(--radius-pill); font: 500 14px/1.2 var(--sans);
+      color: var(--body); cursor: pointer; transition: border-color .2s;
     }
+    #legend:hover { border-color: var(--gold-500); }
+    #legend:focus-visible { outline: 2px solid var(--gold-700); outline-offset: 2px; }
+    /* Color por material: la barra pasa a gris para indicar que el verde no se está mostrando */
+    #legend[aria-pressed="false"] :is(.swatch, .legend-fill) { background: var(--mute); }
     #legend.hidden { display: none; }
     #legend .swatch { width: 12px; height: 12px; border-radius: 50%; background: var(--state-certified); }
     #legend strong { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right; }
-    .legend-label { display: inline-flex; align-items: center; gap: 8px; }
+    .legend-label { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); }
     .legend-track { width: 120px; height: 8px; border-radius: var(--radius-pill); background: var(--hairline); overflow: hidden; }
     .legend-fill { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--state-certified); }
 
@@ -466,11 +471,11 @@
     <p class="doc-status" id="doc-status" role="status" aria-live="polite"></p>
   </section>
   <div id="status" class="overline" role="status" aria-live="polite">Cargando visor…</div>
-  <div id="legend" class="card hidden">
-    <span class="legend-label"><span class="swatch" aria-hidden="true"></span>Avance</span>
-    <div class="legend-track" id="legend-bar" role="progressbar" aria-label="Avance" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="legend-fill" id="legend-fill"></span></div>
+  <button type="button" id="legend" class="card hidden" aria-pressed="true">
+    <span class="legend-label overline"><span class="swatch" aria-hidden="true"></span>Avance</span>
+    <span class="legend-track" id="legend-bar" role="progressbar" aria-label="Avance" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="legend-fill" id="legend-fill"></span></span>
     <strong id="legend-pct"></strong>
-  </div>
+  </button>
   <div id="section-tools" class="hidden">
     <div class="section-group card" role="group" aria-label="Cortes">
       <button type="button" class="section-btn" id="section-x-btn" data-axis="x" aria-pressed="false" aria-controls="section-x-panel" title="Corte en X" aria-label="Corte en X">
@@ -558,7 +563,10 @@
     // Elements whose "Certificated" property is YES/TRUE are drawn in this color.
     const CERTIFIED_PROPERTY = 'Certificated';
     // Functional state colour (matches --state-certified); not a brand accent.
-    const CERTIFIED_COLOR = { x: 0x4e / 255, y: 0x8a / 255, z: 0x2e / 255, w: 1 };
+    const CERTIFIED_COLOR = new THREE.Color().setRGB(0x4e / 255, 0x8a / 255, 0x2e / 255, THREE.SRGBColorSpace);
+    // Colour mode, toggled by pressing the Avance bar: 'avance' paints certified
+    // elements green; 'material' shows every element with its IFC material colour.
+    let colorMode = 'avance';
 
     // --- Vistas y pestañas --------------------------------------------------------
     // The URL hash is the state: #inicio (default), #visor, #novedades,
@@ -840,18 +848,21 @@
           matrix.elements[14] -= shared.origin[2];
           geometry.applyMatrix4(matrix);
 
-          const { x: r, y: g, z: b, w: a } = certified.has(mesh.expressID) ? CERTIFIED_COLOR : placed.color;
-          const key = `${r.toFixed(3)},${g.toFixed(3)},${b.toFixed(3)},${a.toFixed(3)}`;
-          if (!byColor.has(key)) byColor.set(key, { color: [r, g, b], opacity: a, geometries: [] });
+          // Grouped by material colour and certified state, so both colour modes can be shown.
+          const { x: r, y: g, z: b, w: a } = placed.color;
+          const isCertified = certified.has(mesh.expressID);
+          const key = `${r.toFixed(3)},${g.toFixed(3)},${b.toFixed(3)},${a.toFixed(3)},${isCertified}`;
+          if (!byColor.has(key)) byColor.set(key, { color: [r, g, b], opacity: a, certified: isCertified, geometries: [] });
           byColor.get(key).geometries.push(geometry);
         }
       });
       ifcApi.CloseModel(modelID);
 
       const model = new THREE.Group();
-      for (const { color, opacity, geometries } of byColor.values()) {
+      for (const { color, opacity, certified: isCertified, geometries } of byColor.values()) {
+        const materialColor = new THREE.Color().setRGB(...color, THREE.SRGBColorSpace);
         const material = new THREE.MeshLambertMaterial({
-          color: new THREE.Color().setRGB(...color, THREE.SRGBColorSpace),
+          color: colorFor(materialColor, isCertified),
           transparent: opacity < 1,
           opacity,
           side: THREE.DoubleSide,
@@ -859,11 +870,24 @@
         });
         const merged = mergeGeometries(geometries, false);
         geometries.forEach((g) => g.dispose());
-        model.add(new THREE.Mesh(merged, material));
+        const mesh = new THREE.Mesh(merged, material);
+        mesh.userData = { materialColor, certified: isCertified };
+        model.add(mesh);
       }
       model.userData.elementCount = elements.size;
       model.userData.certifiedCount = [...elements].filter((id) => certified.has(id)).length;
       return model;
+    }
+
+    function colorFor(materialColor, isCertified) {
+      return (colorMode === 'avance' && isCertified ? CERTIFIED_COLOR : materialColor).clone();
+    }
+    function applyColorMode(root) {
+      root.traverse((o) => { if (o.isMesh) o.material.color.copy(colorFor(o.userData.materialColor, o.userData.certified)); });
+      const legend = document.getElementById('legend');
+      const isAvance = colorMode === 'avance';
+      legend.setAttribute('aria-pressed', String(isAvance));
+      legend.title = isAvance ? 'Ver colores por material' : 'Ver colores por avance';
     }
 
     // Walks IfcRelDefinesByProperties and returns the expressIDs of elements
@@ -1098,7 +1122,13 @@
       bar.setAttribute('aria-valuetext', `${pct} %`);
       document.getElementById('legend-fill').style.width = `${total ? (done / total) * 100 : 0}%`;
       document.getElementById('legend-pct').textContent = `${pct} %`;
-      document.getElementById('legend').classList.remove('hidden');
+      const legendBtn = document.getElementById('legend');
+      legendBtn.addEventListener('click', () => {
+        colorMode = colorMode === 'avance' ? 'material' : 'avance';
+        applyColorMode(model);
+      });
+      applyColorMode(model);
+      legendBtn.classList.remove('hidden');
       setStatus('');
     } catch (err) {
       console.error(err);
