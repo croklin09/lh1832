@@ -102,11 +102,13 @@
     .layers.hidden { display: none; }
     .layers legend { float: left; width: 100%; padding: 0; margin: 0 0 8px; color: var(--mute); font-size: 11px; }
     #layers-list { clear: both; display: grid; gap: 6px; }
-    .layer { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink); cursor: pointer; }
-    .layer input { width: 16px; height: 16px; margin: 0; accent-color: var(--gold-700); cursor: pointer; }
+    .layer { display: grid; grid-template-columns: 84px 120px 44px; align-items: center; gap: 10px; font-size: 14px; color: var(--ink); }
+    .layer input { width: 100%; margin: 0; accent-color: var(--gold-700); cursor: pointer; }
     .layer input:focus-visible { outline: 2px solid var(--gold-700); outline-offset: 2px; }
-    .layer input:disabled + span { color: var(--mute); }
-    .layer small { color: var(--mute); font-size: 12px; }
+    .layer input:disabled { cursor: default; }
+    .layer output { font-size: 13px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--body); }
+    .layer.is-unavailable { color: var(--mute); }
+    .layer small { grid-column: 2 / -1; color: var(--mute); font-size: 12px; }
 
     /* Bloqueo de proyecto: sello Lifestyle, filete dorado, nombre corto, rótulo */
     .project-lockup {
@@ -354,7 +356,7 @@
       .section-btn { width: 44px; height: 44px; }
       .section-group .section-btn { width: 22px; height: 22px; }
       .layers { right: 16px; top: calc(72px + env(safe-area-inset-top, 0px)); padding: 8px 12px 10px; }
-      .layer { font-size: 13px; }
+      .layer { grid-template-columns: 72px 84px 42px; gap: 8px; font-size: 13px; }
       .section-controls {
         position: fixed; left: 16px; right: 16px; z-index: 3; gap: 10px; padding: 6px 6px 6px 16px;
       }
@@ -937,25 +939,51 @@
       controls.update();
     }
 
-    // Layer list: one checkbox per IFC. A layer that fails to load stays listed, disabled.
+    // Layer list: one opacity slider (0–100 %) per IFC; 0 hides the layer.
+    // A layer that fails to load stays listed as unavailable.
     function addLayer(def, group, error) {
-      const label = document.createElement('label');
-      label.className = 'layer';
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.checked = !!group;
-      input.disabled = !group;
-      const name = document.createElement('span');
+      const row = document.createElement('div');
+      row.className = 'layer';
+      const inputId = `layer-${def.id}`;
+      const name = document.createElement('label');
+      name.htmlFor = inputId;
       name.textContent = def.name;
-      label.append(input, name);
-      if (error) {
+      row.append(name);
+      if (!group) {
+        row.classList.add('is-unavailable');
         const note = document.createElement('small');
         note.textContent = 'no disponible';
-        label.title = error.message;
-        label.append(note);
+        row.title = error?.message ?? '';
+        row.append(note);
+        document.getElementById('layers-list').append(row);
+        return;
       }
-      if (group) input.addEventListener('change', () => { group.visible = input.checked; });
-      document.getElementById('layers-list').append(label);
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.id = inputId;
+      input.min = '0'; input.max = '100'; input.step = '5'; input.value = '100';
+      input.setAttribute('aria-label', `Opacidad de ${def.name}`);
+      const output = document.createElement('output');
+      output.htmlFor = inputId;
+      // Each material keeps the IFC's own opacity; the slider scales it.
+      const materials = [];
+      group.traverse((o) => { if (o.isMesh) materials.push({ material: o.material, base: o.material.opacity }); });
+      const apply = () => {
+        const v = Number(input.value) / 100;
+        output.textContent = `${input.value} %`;
+        input.setAttribute('aria-valuetext', `${input.value} %`);
+        group.visible = v > 0;
+        for (const { material, base } of materials) {
+          material.opacity = base * v;
+          material.transparent = material.opacity < 1;
+          material.depthWrite = material.opacity >= 1;
+          material.needsUpdate = true;
+        }
+      };
+      input.addEventListener('input', apply);
+      apply();
+      row.append(input, output);
+      document.getElementById('layers-list').append(row);
     }
 
     async function loadModels() {

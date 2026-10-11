@@ -1,6 +1,6 @@
 # Modelos 3D (capas)
 
-El visor carga cada IFC como una capa que se enciende y apaga desde el panel **Capas**.
+El visor carga cada IFC como una capa con su propia barra de opacidad (0–100 %) en el panel **Capas**; en 0 % la capa se oculta.
 La lista está en `index.html`, constante `MODELS` (nombre visible y archivo):
 
 | Capa       | Archivo          | Contenido                                                |
