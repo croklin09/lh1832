@@ -124,7 +124,7 @@
 
     /* Bloqueo de proyecto: sello Lifestyle, filete dorado, nombre corto, rótulo */
     .project-lockup {
-      position: fixed; right: 32px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 2; pointer-events: none;
+      position: fixed; right: calc(32px + 52px + 20px); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 2; pointer-events: none;
       display: grid; justify-items: center; gap: 8px; width: max-content;
     }
     .project-lockup .meta { white-space: nowrap; }
@@ -142,6 +142,17 @@
     .project-lockup .name { margin: 0; font-size: 14px; font-weight: 500; letter-spacing: .5em; margin-right: -.5em; color: var(--gold-700); }
     .project-lockup .meta { margin: 0; color: var(--mute); font-size: 11px; }
 
+
+    /* WhatsApp: botón flotante fijo, visible en todas las vistas */
+    .whatsapp {
+      position: fixed; right: 32px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 20;
+      width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center;
+      background: var(--gold-700); color: var(--on-gold); box-shadow: var(--shadow-warm);
+      transition: background-color .2s, transform .2s;
+    }
+    .whatsapp:hover { background: var(--gold-800); transform: scale(1.05); }
+    .whatsapp:focus-visible { outline: 2px solid var(--gold-700); outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { .whatsapp { transition: none; } .whatsapp:hover { transform: none; } }
 
     /* Botones de marca */
     .btn {
@@ -340,7 +351,8 @@
       /* Portada en celular: todo en una pantalla, sin desplazamiento */
       .intro {
         display: flex; flex-direction: column; gap: 14px;
-        padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px));
+        /* Fondo extra para que los botones queden por encima del botón de WhatsApp */
+        padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(32px + env(safe-area-inset-bottom, 0px));
       }
       .intro-media { flex: 1 1 auto; min-height: 120px; }
       .intro-media img { height: 100%; }
@@ -376,15 +388,15 @@
       .layers:not(.is-open) .layers-panel { display: none; }
       .layer { grid-template-columns: 72px 84px 42px; gap: 8px; font-size: 13px; }
       .section-controls {
-        position: fixed; left: 16px; right: 16px; z-index: 3; gap: 10px; padding: 6px 6px 6px 16px;
+        position: fixed; left: 16px; right: calc(16px + 48px + 8px); z-index: 3; gap: 10px; padding: 6px 6px 6px 16px;
       }
       .section-controls[data-axis="x"] { bottom: calc(180px + env(safe-area-inset-bottom, 0px)); }
       .section-controls[data-axis="y"] { bottom: calc(124px + env(safe-area-inset-bottom, 0px)); }
       .section-controls[data-axis="z"] { bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
       .section-controls label { font-size: 11px; letter-spacing: .12em; white-space: nowrap; }
       .section-controls input[type="range"] { flex: 1 1 auto; width: auto; min-width: 0; }
-      .section-controls output { min-width: 0; font-size: 14px; white-space: nowrap; }
-      .section-controls button { padding: 9px 12px; font-size: 12px; }
+      .section-controls output { flex: none; min-width: 0; font-size: 13px; white-space: nowrap; }
+      .section-controls button { flex: none; padding: 9px 10px; font-size: 12px; }
       /* Sello junto al logo Korn, misma altura y mismos bordes superior e inferior */
       .project-lockup {
         left: calc(16px + 98px + 12px); right: auto; top: calc(16px + env(safe-area-inset-top, 0px)); bottom: auto;
@@ -395,6 +407,7 @@
       .project-lockup .name { font-size: 8px; line-height: 1; letter-spacing: .4em; margin-right: -.4em; }
       .project-lockup .meta { display: none; }
       #hint { display: none; }
+      .whatsapp { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; }
     }
   </style>
   <script type="importmap">
@@ -542,6 +555,10 @@
     <p class="meta overline" id="model-updated"></p>
   </div>
   <div id="hint">Arrastrá para orbitar · Clic derecho o flechas para desplazar · Rueda o +/− para acercar · F para encuadrar</div>
+
+  <a class="whatsapp" href="https://wa.me/5491178648000?text=Hola%2C%20quiero%20consultar%20por%20Las%20Heras%201832." target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp: +54 9 11 7864-8000" title="WhatsApp +54 9 11 7864-8000">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+  </a>
 
   <script type="module">
     import * as THREE from 'three';
