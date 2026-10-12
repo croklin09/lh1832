@@ -47,6 +47,10 @@
       position: fixed; left: 32px; top: calc(24px + env(safe-area-inset-top, 0px)); z-index: 2; pointer-events: none;
     }
     .brand-logo { height: 56px; width: auto; display: block; }
+    /* Logo Korn: enlace al sitio de Korn Desarrolla en todas las vistas */
+    .korn-link { display: block; pointer-events: auto; border-radius: 4px; }
+    .korn-link:focus-visible { outline: 2px solid var(--gold-700); outline-offset: 4px; }
+    .korn-link img { display: block; }
 
     /* Herramientas de corte: ícono de línea blanco en círculo dorado (estilo Amenity) */
     #section-tools {
@@ -147,10 +151,11 @@
     .whatsapp {
       position: fixed; right: 32px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 20;
       width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center;
-      background: var(--gold-700); color: var(--on-gold); box-shadow: var(--shadow-warm);
+      background: #25d366; color: #fff; box-shadow: var(--shadow-warm);
       transition: background-color .2s, transform .2s;
     }
-    .whatsapp:hover { background: var(--gold-800); transform: scale(1.05); }
+    /* Verde oficial de WhatsApp (excepción a la paleta dorada, para que se reconozca) */
+    .whatsapp:hover { background: #1ebe5d; transform: scale(1.05); }
     .whatsapp:focus-visible { outline: 2px solid var(--gold-700); outline-offset: 3px; }
     @media (prefers-reduced-motion: reduce) { .whatsapp { transition: none; } .whatsapp:hover { transform: none; } }
 
@@ -197,7 +202,8 @@
 
     /* Novedades */
     .news-view { padding: calc(120px + env(safe-area-inset-top, 0px)) 32px calc(48px + env(safe-area-inset-bottom, 0px)); }
-    .news-korn { position: absolute; left: 32px; top: calc(24px + env(safe-area-inset-top, 0px)); height: 56px; width: auto; }
+    .news-korn { position: absolute; left: 32px; top: calc(24px + env(safe-area-inset-top, 0px)); }
+    .news-korn img { height: 56px; width: auto; }
     .news-inner { max-width: 1040px; margin: 0 auto; display: grid; gap: 16px; }
     .news-inner .overline { margin: 0; color: var(--mute); }
     .news-inner h2 { margin: 0; font-size: 40px; line-height: 1.12; font-weight: 600; color: var(--ink); scroll-margin-top: 96px; }
@@ -262,7 +268,8 @@
       gap: 28px; min-width: 0; padding-block: 16px;
     }
     .intro-brands { display: flex; flex-direction: column; align-items: center; gap: 28px; }
-    .intro-korn { width: min(260px, 60%); height: auto; }
+    .intro-korn { width: min(260px, 60%); }
+    .intro-korn img { width: 100%; height: auto; }
     .intro-seal { display: grid; justify-items: center; gap: 12px; }
     .intro-seal img { width: 200px; height: auto; }
     .intro-seal .rule, .intro-place .rule { width: 200px; height: 1px; background: var(--gold-accent); }
@@ -287,7 +294,8 @@
       .intro-copy { gap: 10px; padding-block: 0; }
       .intro-brands { flex-direction: row; gap: 20px; }
       .intro-brands { align-items: center; }
-      .intro-korn { width: auto; height: 48px; }
+      .intro-korn { width: auto; }
+      .intro-korn img { width: auto; height: 48px; }
       /* Sello Lifestyle con la misma altura que el logo Korn: bordes superior e inferior alineados */
       .intro-seal { height: 48px; grid-template-rows: minmax(0, 1fr) auto auto; gap: 3px; }
       .intro-seal img { height: 100%; width: auto; min-height: 0; }
@@ -332,7 +340,8 @@
       .nav-tab .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
       .nav-tab[aria-current="page"] { display: none; }
       .news-view { padding: calc(80px + env(safe-area-inset-top, 0px)) 16px calc(32px + env(safe-area-inset-bottom, 0px)); }
-      .news-korn { left: 16px; top: calc(16px + env(safe-area-inset-top, 0px)); height: 36px; }
+      .news-korn { left: 16px; top: calc(16px + env(safe-area-inset-top, 0px)); }
+      .news-korn img { height: 36px; }
       .news-inner h2 { font-size: 30px; }
       .news-intro { font-size: 15px; margin-bottom: 8px; }
       .news-card { grid-template-columns: 92px minmax(0, 1fr); gap: 16px; padding: 12px; }
@@ -360,7 +369,8 @@
       .intro-copy { flex: none; gap: 12px; padding-block: 0; }
       .intro-brands { flex-direction: row; justify-content: center; gap: 20px; }
       .intro-brands { align-items: center; }
-      .intro-korn { width: auto; height: 48px; }
+      .intro-korn { width: auto; }
+      .intro-korn img { width: auto; height: 48px; }
       /* Sello Lifestyle con la misma altura que el logo Korn: bordes superior e inferior alineados */
       .intro-seal { height: 48px; grid-template-rows: minmax(0, 1fr) auto auto; gap: 3px; }
       .intro-seal img { height: 100%; width: auto; min-height: 0; }
@@ -425,7 +435,7 @@
   <h2 id="viewer-heading" class="visually-hidden" tabindex="-1">Visor 3D de la estructura</h2>
   <div id="viewer" role="img" aria-label="Modelo 3D de la estructura de Las Heras 1832. Los elementos certificados se muestran en verde."></div>
   <header class="brand-bar">
-    <img class="brand-logo" src="assets/korn-logo-dorado.svg" width="153" height="56" alt="Korn Desarrolla" translate="no">
+    <a class="korn-link" href="https://korndesarrolla.com.ar/" target="_blank" rel="noopener" title="Ir a korndesarrolla.com.ar"><img class="brand-logo" src="assets/korn-logo-dorado.svg" width="153" height="56" alt="Korn Desarrolla (abre su sitio web)" translate="no"></a>
   </header>
   <section id="intro" class="intro" aria-labelledby="intro-title">
     <figure class="intro-media">
@@ -434,7 +444,7 @@
     </figure>
     <div class="intro-copy">
       <div class="intro-brands">
-        <img class="intro-korn" src="assets/korn-logo-dorado.svg" width="260" height="95" alt="Korn Desarrolla" translate="no">
+        <a class="korn-link intro-korn" href="https://korndesarrolla.com.ar/" target="_blank" rel="noopener" title="Ir a korndesarrolla.com.ar"><img src="assets/korn-logo-dorado.svg" width="260" height="95" alt="Korn Desarrolla (abre su sitio web)" translate="no"></a>
         <div class="intro-seal">
           <img src="assets/lifestyle-sello.svg" width="200" height="135" alt="Lifestyle" translate="no">
           <span class="rule" aria-hidden="true"></span>
@@ -461,7 +471,7 @@
     <a class="nav-tab" href="#brochure" data-view="doc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5v13"/></svg><span class="nav-label">Brochure</span></a>
   </nav>
   <section id="novedades" class="overlay news-view is-closed" aria-labelledby="news-title">
-    <img class="news-korn" src="assets/korn-logo-dorado.svg" width="153" height="56" alt="Korn Desarrolla" translate="no">
+    <a class="korn-link news-korn" href="https://korndesarrolla.com.ar/" target="_blank" rel="noopener" title="Ir a korndesarrolla.com.ar"><img src="assets/korn-logo-dorado.svg" width="153" height="56" alt="Korn Desarrolla (abre su sitio web)" translate="no"></a>
     <div class="news-inner">
       <p class="overline" translate="no">Las Heras 1832</p>
       <h2 id="news-title" tabindex="-1">Novedades</h2>
