@@ -19,3 +19,11 @@ Los elementos con la propiedad `Certificated` = YES/TRUE se pintan en verde y su
 **Avance** (certificados / total de elementos de todas las capas). Hoy los dos IFC tienen todos
 sus elementos certificados mediante el Pset `KORN_Avance` (`Certificated` = TRUE), agregado al final
 de cada archivo. Si se reexporta desde Revit, hay que cargar la propiedad allá.
+
+## Avance ponderado por costo
+
+La barra **Avance** pondera cada elemento por su volumen de hormigón (m³, calculado de la
+geometría del IFC) y lo valoriza con `STRUCTURE_COST_USD` en `index.html`: el rubro Hormigón
+del Libro Las Heras (USD 936.543,54). Volumen total de las dos capas: 856,3 m³
+(losas 661,5 · columnas 105,9 · vigas 49,8 · losas de escalera 17,8 · tramos 21,3),
+≈ 1.094 USD/m³. Si cambia el costo del rubro, actualizá esa constante.

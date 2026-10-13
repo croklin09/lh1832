@@ -92,7 +92,7 @@
     /* Leyenda de certificados */
     #legend {
       position: fixed; right: 32px; top: calc(92px + env(safe-area-inset-top, 0px)); z-index: 2;
-      display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: var(--radius-pill); font: 500 14px/1.2 var(--sans);
+      display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 4px 10px; padding: 10px 18px; border-radius: 18px; font: 500 14px/1.2 var(--sans);
       color: var(--body); cursor: pointer; transition: border-color .2s;
     }
     #legend:hover { border-color: var(--gold-500); }
@@ -105,11 +105,12 @@
     .legend-label { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); }
     .legend-track { width: 120px; height: 8px; border-radius: var(--radius-pill); background: var(--hairline); overflow: hidden; }
     .legend-fill { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--state-certified); }
+    .legend-usd { grid-column: 1 / -1; justify-self: end; font-size: 12px; color: var(--mute); font-variant-numeric: tabular-nums; }
 
 
     /* Capas: un IFC por capa, cada una con su opacidad. En celular se pliega tras un ícono. */
     .layers {
-      position: fixed; right: 32px; top: calc(144px + env(safe-area-inset-top, 0px)); z-index: 2;
+      position: fixed; right: 32px; top: calc(164px + env(safe-area-inset-top, 0px)); z-index: 2;
       display: grid; justify-items: end; gap: 8px;
     }
     .layers.hidden { display: none; }
@@ -400,9 +401,9 @@
       .section-controls {
         position: fixed; left: 16px; right: calc(16px + 48px + 8px); z-index: 3; gap: 10px; padding: 6px 6px 6px 16px;
       }
-      .section-controls[data-axis="x"] { bottom: calc(180px + env(safe-area-inset-bottom, 0px)); }
-      .section-controls[data-axis="y"] { bottom: calc(124px + env(safe-area-inset-bottom, 0px)); }
-      .section-controls[data-axis="z"] { bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+      .section-controls[data-axis="x"] { bottom: calc(196px + env(safe-area-inset-bottom, 0px)); }
+      .section-controls[data-axis="y"] { bottom: calc(140px + env(safe-area-inset-bottom, 0px)); }
+      .section-controls[data-axis="z"] { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
       .section-controls label { font-size: 11px; letter-spacing: .12em; white-space: nowrap; }
       .section-controls input[type="range"] { flex: 1 1 auto; width: auto; min-width: 0; }
       .section-controls output { flex: none; min-width: 0; font-size: 13px; white-space: nowrap; }
@@ -498,6 +499,7 @@
     <span class="legend-label overline"><span class="swatch" aria-hidden="true"></span>Avance</span>
     <span class="legend-track" id="legend-bar" role="progressbar" aria-label="Avance" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="legend-fill" id="legend-fill"></span></span>
     <strong id="legend-pct"></strong>
+    <span class="legend-usd" id="legend-usd"></span>
   </button>
   <div id="section-tools" class="hidden">
     <div class="section-group card" role="group" aria-label="Cortes">
@@ -581,6 +583,10 @@
     // All share one origin, so models exported from the same Revit project line up.
     // Date the IFC models were last updated, shown under the project lockup (AAAA-MM-DD).
     const MODELS_UPDATED = '2026-10-11';
+    // Cost weighting of the Avance bar: the "Hormigón" item of the Las Heras cost book
+    // (Libro Las Heras, Tablero, USD) is spread over the structure in proportion to each
+    // element's concrete volume (m³, computed from the IFC geometry, every layer).
+    const STRUCTURE_COST_USD = 936543.54;
     const MODELS = [
       { id: 'estructura', name: 'Estructura', url: 'models/model.ifc' },
       { id: 'escaleras', name: 'Escaleras', url: 'models/escaleras.ifc' },
@@ -842,7 +848,7 @@
       const modelID = ifcApi.OpenModel(data, { COORDINATE_TO_ORIGIN: false });
       const certified = findCertifiedElements(ifcApi, modelID);
       const byColor = new Map();
-      const elements = new Set(); // elements that produce visible geometry
+      const volumes = new Map(); // expressID -> volume (m³) of elements with visible geometry
 
       ifcApi.StreamAllMeshes(modelID, (mesh) => {
         const placedGeometries = mesh.geometries;
@@ -853,7 +859,6 @@
           const indices = ifcApi.GetIndexArray(ifcGeometry.GetIndexData(), ifcGeometry.GetIndexDataSize());
           ifcGeometry.delete();
           if (!indices.length) continue;
-          elements.add(mesh.expressID);
 
           // Interleaved [x, y, z, nx, ny, nz]
           const count = verts.length / 6;
@@ -874,6 +879,7 @@
           matrix.elements[13] -= shared.origin[1];
           matrix.elements[14] -= shared.origin[2];
           geometry.applyMatrix4(matrix);
+          volumes.set(mesh.expressID, (volumes.get(mesh.expressID) ?? 0) + meshVolume(geometry));
 
           // Grouped by material colour and certified state, so both colour modes can be shown.
           const { x: r, y: g, z: b, w: a } = placed.color;
@@ -901,9 +907,27 @@
         mesh.userData = { materialColor, certified: isCertified };
         model.add(mesh);
       }
-      model.userData.elementCount = elements.size;
-      model.userData.certifiedCount = [...elements].filter((id) => certified.has(id)).length;
+      model.userData.volume = 0;
+      model.userData.certifiedVolume = 0;
+      for (const [id, v] of volumes) {
+        model.userData.volume += v;
+        if (certified.has(id)) model.userData.certifiedVolume += v;
+      }
       return model;
+    }
+
+    // Volume of a closed triangle mesh (divergence theorem); abs() covers mirrored placements.
+    function meshVolume(geometry) {
+      const pos = geometry.attributes.position.array;
+      const idx = geometry.index.array;
+      let sum = 0;
+      for (let k = 0; k < idx.length; k += 3) {
+        const a = idx[k] * 3, b = idx[k + 1] * 3, c = idx[k + 2] * 3;
+        sum += pos[a] * (pos[b + 1] * pos[c + 2] - pos[b + 2] * pos[c + 1])
+          - pos[a + 1] * (pos[b] * pos[c + 2] - pos[b + 2] * pos[c])
+          + pos[a + 2] * (pos[b] * pos[c + 1] - pos[b + 1] * pos[c]);
+      }
+      return Math.abs(sum / 6);
     }
 
     function colorFor(materialColor, isCertified) {
@@ -1082,16 +1106,16 @@
       await ifcApi.Init();
       const root = new THREE.Group();
       const shared = { origin: null };
-      let certifiedCount = 0;
-      let elementCount = 0;
+      let volume = 0;
+      let certifiedVolume = 0;
       for (const [i, def] of MODELS.entries()) {
         setStatus(MODELS.length > 1 ? `Cargando ${def.name.toLowerCase()} (${i + 1} de ${MODELS.length})…` : 'Descargando modelo…');
         try {
           const group = await loadIfc(ifcApi, def.url, shared);
           group.name = def.id;
           root.add(group);
-          certifiedCount += group.userData.certifiedCount;
-          elementCount += group.userData.elementCount;
+          volume += group.userData.volume;
+          certifiedVolume += group.userData.certifiedVolume;
           addLayer(def, group);
         } catch (err) {
           if (i === 0) throw err;
@@ -1100,8 +1124,8 @@
         }
       }
       if (MODELS.length > 1) document.getElementById('layers').classList.remove('hidden');
-      root.userData.certifiedCount = certifiedCount;
-      root.userData.elementCount = elementCount;
+      root.userData.volume = volume;
+      root.userData.certifiedVolume = certifiedVolume;
       return root;
     }
 
@@ -1141,14 +1165,20 @@
         else if (e.key === '+' || e.key === '=') zoomBy(0.8);
         else if (e.key === '-' || e.key === '_') zoomBy(1.25);
       });
-      // Avance: certified elements over all elements with geometry, every layer.
-      const { certifiedCount: done, elementCount: total } = model.userData;
-      const pct = total ? Math.round((done / total) * 100) : 0;
+      // Avance weighted by cost: certified concrete volume over total volume, every layer,
+      // valued at STRUCTURE_COST_USD.
+      const { certifiedVolume, volume } = model.userData;
+      const share = volume ? certifiedVolume / volume : 0;
+      const pct = Math.round(share * 100);
+      const usd = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
+      const done = usd.format(share * STRUCTURE_COST_USD);
+      const total = usd.format(STRUCTURE_COST_USD);
       const bar = document.getElementById('legend-bar');
       bar.setAttribute('aria-valuenow', String(pct));
-      bar.setAttribute('aria-valuetext', `${pct} %`);
-      document.getElementById('legend-fill').style.width = `${total ? (done / total) * 100 : 0}%`;
+      bar.setAttribute('aria-valuetext', `${pct} %, US$ ${done} de US$ ${total}`);
+      document.getElementById('legend-fill').style.width = `${share * 100}%`;
       document.getElementById('legend-pct').textContent = `${pct} %`;
+      document.getElementById('legend-usd').textContent = `US$ ${done} / ${total}`;
       const legendBtn = document.getElementById('legend');
       legendBtn.addEventListener('click', () => {
         colorMode = colorMode === 'avance' ? 'material' : 'avance';
